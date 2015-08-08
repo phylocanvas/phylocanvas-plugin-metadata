@@ -1,0 +1,35 @@
+{
+  "name": "phylocanvas-plugin-metadata",
+  "version": "1.0.0",
+  "description": "Display binary data adjacent to tree leaves.",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server --inline",
+    "build": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PhyloCanvas/phylocanvas-plugin-metadata.git"
+  },
+  "keywords": [
+    "phylocanvas",
+    "phylocanvas-plugin",
+    "metadata",
+    "biojs"
+  ],
+  "author": "",
+  "license": "LGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/PhyloCanvas/phylocanvas-plugin-metadata/issues"
+  },
+  "homepage": "https://github.com/PhyloCanvas/phylocanvas-plugin-metadata#readme",
+  "devDependencies": {
+    "babel-core": "^5.8.20",
+    "babel-loader": "^5.3.2",
+    "cgps-style": "imperialcollegelondon/javascript#v0.1.1",
+    "PhyloCanvas": "phylocanvas/phylocanvas#plugins",
+    "webpack": "^1.10.5",
+    "webpack-dev-server": "^1.10.1"
+  }
+}
