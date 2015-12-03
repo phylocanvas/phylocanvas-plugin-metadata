@@ -134,6 +134,9 @@ export default function metadataPlugin(decorate) {
     tree.metadataXStep = 15;
     // Boolean to detect if metadata heading is drawn or not
     tree.metadataHeadingDrawn = false;
+    // Colour for 1 and 0s. Currently 0s are not drawn
+    tree.colour1 = 'rgba(206,16,16,1)';
+    tree.colour0 = '#ccc';
 
     return tree;
   });
