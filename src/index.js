@@ -1,4 +1,4 @@
-import PhyloCanvas, { Tree, Branch } from 'PhyloCanvas';
+import PhyloCanvas, { Tree, Branch } from 'phylocanvas';
 
 Tree.prototype.viewMetadataColumns =
   function (metadataColumnArray = this.getMetadataColumnHeadings()) {

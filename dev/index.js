@@ -1,4 +1,4 @@
-import PhyloCanvas from 'PhyloCanvas';
+import PhyloCanvas from 'phylocanvas';
 import metadataPlugin from '../src/index';
 
 PhyloCanvas.plugin(metadataPlugin);

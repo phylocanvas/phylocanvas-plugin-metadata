@@ -1,40 +1,45 @@
-/* eslint es6: false */
-var webpack = require('webpack');
+const webpack = require('webpack');
 
-var devConfig = {
+const loaders = [
+  { test: /\.js$/,
+    exclude: /webpack/,
+    loader: 'babel',
+    query: {
+      presets: [ 'es2015', 'stage-0' ],
+    },
+  },
+];
+
+const devConfig = {
   entry: './dev/index.js',
   output: {
     filename: 'metadata-dev.js',
     libraryTarget: 'umd',
   },
   module: {
-    loaders: [
-      { test: /\.js$/, exclude: /webpack/, loader: 'babel?stage=0' },
-    ],
+    loaders,
   },
 };
 
-var buildConfig = {
+const buildConfig = {
   entry: './src/index.js',
   output: {
     filename: 'index.js',
     libraryTarget: 'umd',
   },
   module: {
-    loaders: [
-      { test: /\.js$/, exclude: /webpack/, loader: 'babel?stage=0' },
-    ],
+    loaders,
   },
-  externals: 'PhyloCanvas',
+  externals: 'phylocanvas',
   plugins: [
     new webpack.optimize.UglifyJsPlugin({
       compressor: {
-        warnings: false
-      }
-    })
-  ]
+        warnings: false,
+      },
+    }),
+  ],
 };
 
-var isBuild = process.env.NODE_ENV && process.env.NODE_ENV === 'production';
+const isBuild = process.env.NODE_ENV && process.env.NODE_ENV === 'production';
 
 module.exports = isBuild ? buildConfig : devConfig;
