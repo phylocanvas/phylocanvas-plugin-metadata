@@ -20,6 +20,11 @@ Tree.prototype.getMetadataColumnHeadings = function () {
   return metadataColumnArray;
 };
 
+Tree.prototype.hasMetadataHeadings = function () {
+  const { treeType } = this;
+  return this.alignLabels && treeType !== 'circular' && treeType !== 'radial';
+};
+
 Tree.prototype.getMetadataLength = function (delegate) {
   var padMaxLabelWidth = 0;
   if (this.showLabels || (this.hoverLabel && this.highlighted)) {
@@ -27,6 +32,17 @@ Tree.prototype.getMetadataLength = function (delegate) {
   }
   return padMaxLabelWidth +
          this.getMetadataColumnHeadings().length * this.metadataXStep;
+};
+
+Tree.prototype.getMetadataHeadingLength = function () {
+  let maxSize = 0;
+  if (this.hasMetadataHeadings()) {
+    this.canvas.font = '12px Sans-serif';
+    for (const colName of this.selectedMetadataColumns) {
+      maxSize = Math.max(maxSize, this.canvas.measureText(colName).width + 20);
+    }
+  }
+  return maxSize;
 };
 
 Tree.prototype.clearMetadata = function () {
@@ -58,8 +74,7 @@ Branch.prototype.drawMetadata = function () {
     }
   }
 
-  if (!this.tree.metadataHeadingDrawn && this.tree.alignLabels &&
-    this.tree.treeType !== 'circular' && this.tree.treeType !== 'radial') {
+  if (!this.tree.metadataHeadingDrawn && this.tree.hasMetadataHeadings()) {
     this.drawMetadataHeading(tx, ty);
     this.tree.metadataHeadingDrawn = true;
   }
@@ -147,6 +162,23 @@ export default function metadataPlugin(decorate) {
   decorate(Tree, 'draw', function (delegate, args) {
     delegate.apply(this, args);
     this.metadataHeadingDrawn = false;
+  });
+
+  decorate(Tree, 'getBounds', function (delegate, args) {
+    const bounds = delegate.apply(this, args);
+    const minx = bounds[0][0];
+    const miny = bounds[0][1];
+    const maxx = bounds[1][0];
+    const maxy = bounds[1][1];
+    const metadataHeadingLength = this.getMetadataHeadingLength();
+    const { treeType } = this;
+    const labelsOnY = treeType === 'rectangular' || treeType === 'diagonal';
+    const labelsOnX = treeType === 'hierarchical';
+    return [
+      [ minx - (labelsOnX ? metadataHeadingLength : 0),
+        miny - (labelsOnY ? metadataHeadingLength : 0) ],
+      [ maxx, maxy ]
+    ];
   });
 
   decorate(Branch, 'drawLeaf', function (delegate) {
