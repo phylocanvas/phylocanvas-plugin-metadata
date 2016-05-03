@@ -1,4 +1,4 @@
-import PhyloCanvas from 'phylocanvas';
+import PhyloCanvas, * as phyloComponents from 'phylocanvas';
 import metadataPlugin from '../src/index';
 
 PhyloCanvas.plugin(metadataPlugin);
@@ -12,6 +12,15 @@ const numberOfColumns = 8; // parseInt(Math.random() * 10) + 1;
 const tree = PhyloCanvas.createTree('phylocanvas', {
   padding: 1,
 });
+
+// create buttons
+const buttonForm = document.getElementById('buttons');
+for (const treeType of Object.keys(phyloComponents.treeTypes)) {
+  const button = document.createElement('button');
+  button.innerHTML = treeType;
+  button.addEventListener('click', tree.setTreeType.bind(tree, treeType));
+  buttonForm.appendChild(button);
+}
 
 tree.on('error', function (event) { throw event.error; });
 
@@ -28,7 +37,7 @@ tree.on('loaded', function () {
   tree.viewMetadataColumns();
 });
 
-// tree.alignLabels = true;
+tree.alignLabels = true;
 tree.setTreeType('rectangular');
 
 const originalDraw = tree.draw;
