@@ -20,6 +20,15 @@ Tree.prototype.getMetadataColumnHeadings = function () {
   return metadataColumnArray;
 };
 
+Tree.prototype.getMetadataLength = function (delegate) {
+  var padMaxLabelWidth = 0;
+  if (this.showLabels || (this.hoverLabel && this.highlighted)) {
+    padMaxLabelWidth = this.maxLabelLength[this.treeType];
+  }
+  return padMaxLabelWidth +
+         this.getMetadataColumnHeadings().length * this.metadataXStep;
+};
+
 Tree.prototype.clearMetadata = function () {
   for (var i = 0; i < this.leaves.length; i++) {
     if (Object.keys(this.leaves[i].data).length > 0) {
@@ -73,11 +82,8 @@ Branch.prototype.drawMetadata = function () {
       columnName = metadata[i];
       tx += metadataXStep;
 
-      if (window.parseInt(this.data[columnName])) {
-        this.canvas.fillStyle = this.tree.colour1;
-        this.canvas.fillRect(tx, ty, width, height);
-      } else if (window.parseInt(this.data[columnName]) === 0) {
-        this.canvas.fillStyle = this.tree.colour0;
+      if (typeof this.data[columnName] !== undefined) {
+        this.canvas.fillStyle = this.data[columnName];
         this.canvas.fillRect(tx, ty, width, height);
       }
     }
@@ -134,9 +140,6 @@ export default function metadataPlugin(decorate) {
     tree.metadataXStep = 15;
     // Boolean to detect if metadata heading is drawn or not
     tree.metadataHeadingDrawn = false;
-    // Colour for 1 and 0s. Currently 0s are not drawn
-    tree.colour1 = 'rgba(206,16,16,1)';
-    tree.colour0 = '#ccc';
 
     return tree;
   });
@@ -157,8 +160,17 @@ export default function metadataPlugin(decorate) {
     let totalSize = delegate.call(this);
 
     if (this.tree.showMetadata) {
-      totalSize +=
-        this.tree.getMetadataColumnHeadings().length * this.tree.metadataXStep;
+      totalSize += this.tree.getMetadataLength();
+    }
+
+    return totalSize;
+  });
+
+  decorate(Branch, 'getTotalLength', function (delegate) {
+    let totalSize = delegate.call(this);
+
+    if (this.tree.showMetadata) {
+      totalSize += this.tree.getMetadataLength();
     }
 
     return totalSize;
