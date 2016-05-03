@@ -21,8 +21,8 @@ Tree.prototype.getMetadataColumnHeadings = function () {
 };
 
 Tree.prototype.hasMetadataHeadings = function () {
-  const { treeType } = this;
-  return this.alignLabels && treeType !== 'circular' && treeType !== 'radial';
+  return this.treeType === 'diagonal' || (this.alignLabels &&
+    this.treeType === 'rectangular' || this.treeType === 'diagonal');
 };
 
 Tree.prototype.getMetadataLength = function (delegate) {
