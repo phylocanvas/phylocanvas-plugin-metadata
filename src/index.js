@@ -22,7 +22,7 @@ Tree.prototype.getMetadataColumnHeadings = function () {
 
 Tree.prototype.hasMetadataHeadings = function () {
   return this.treeType === 'diagonal' || (this.alignLabels &&
-    this.treeType === 'rectangular' || this.treeType === 'diagonal');
+    this.treeType === 'rectangular' || this.treeType === 'hierarchical');
 };
 
 Tree.prototype.getMetadataLength = function (delegate) {
