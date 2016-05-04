@@ -74,14 +74,14 @@ Branch.prototype.drawMetadata = function () {
 
   if (this.tree.alignLabels) {
     if (this.tree.treeType === 'rectangular') {
-      tx += (this.tree.farthestNodeFromRootX - this.centerx);
+      tx += (this.tree.farthestNodeFromRootX * this.tree.currentBranchScale - this.centerx);
     } else if (this.tree.treeType === 'hierarchical') {
-      tx += (this.tree.farthestNodeFromRootY - this.centery);
+      tx += (this.tree.farthestNodeFromRootY * this.tree.currentBranchScale - this.centery);
     }
   }
 
   if (!this.tree.metadata.headingDrawn && this.tree.hasMetadataHeadings()) {
-    this.drawMetadataHeading(tx, ty + height / 2);
+    this.drawMetadataHeading(tx, height * 0.75);
     this.tree.metadata.headingDrawn = true;
   }
 
@@ -126,13 +126,13 @@ Branch.prototype.drawMetadataHeading = function (x, y) {
       this.canvas.textAlign = 'left';
       // x and y axes changed because of rotate
       // Adding + 6 to adjust the position
-      this.canvas.fillText(columnName, ty + 20, tx + 6);
+      this.canvas.fillText(columnName, ty, tx + 6);
     } else if (this.tree.treeType === 'hierarchical') {
       this.canvas.textAlign = 'right';
-      this.canvas.fillText(columnName, - ty - 20, tx + 8);
+      this.canvas.fillText(columnName, -ty, tx + 8);
     } else if (this.tree.treeType === 'diagonal') {
       this.canvas.textAlign = 'left';
-      this.canvas.fillText(columnName, ty + 20, tx + 6);
+      this.canvas.fillText(columnName, ty, tx + 6);
     }
     tx += this.tree.metadata.step;
     // Rotate canvas back to normal position
