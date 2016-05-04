@@ -30,14 +30,14 @@ Tree.prototype.getMetadataLength = function (delegate) {
   if (this.showLabels || (this.hoverLabel && this.highlighted)) {
     padMaxLabelWidth = this.maxLabelLength[this.treeType];
   }
-  return padMaxLabelWidth +
+  return padMaxLabelWidth + this.metadataXStep +
          this.getMetadataColumnHeadings().length * this.metadataXStep;
 };
 
 Tree.prototype.getMetadataHeadingLength = function () {
   let maxSize = 0;
   if (this.hasMetadataHeadings()) {
-    this.canvas.font = '12px Sans-serif';
+    this.canvas.font = `${this.textSize}px Sans-serif`;
     for (const colName of this.selectedMetadataColumns) {
       maxSize = Math.max(maxSize, this.canvas.measureText(colName).width + 20);
     }
@@ -54,15 +54,17 @@ Tree.prototype.clearMetadata = function () {
 };
 
 Branch.prototype.drawMetadata = function () {
+  const context = this.canvas;
   var padMaxLabelWidth = 0;
   if (this.tree.showLabels || (this.tree.hoverLabel && this.highlighted)) {
     padMaxLabelWidth = this.tree.maxLabelLength[this.tree.treeType];
   }
   var tx = this.getLabelStartX() + padMaxLabelWidth;
   var ty = 0;
+
   var metadata = [];
-  var height = this.tree.textSize;
-  var width = this.tree.metadataXStep / 2;
+  var height = Math.min(this.tree.step, this.tree.baseNodeSize);
+  var width = this.tree.metadataXStep * 0.9;
   var i;
   var columnName;
 
@@ -75,7 +77,7 @@ Branch.prototype.drawMetadata = function () {
   }
 
   if (!this.tree.metadataHeadingDrawn && this.tree.hasMetadataHeadings()) {
-    this.drawMetadataHeading(tx, ty);
+    this.drawMetadataHeading(tx, ty + height / 2);
     this.tree.metadataHeadingDrawn = true;
   }
 
@@ -93,10 +95,8 @@ Branch.prototype.drawMetadata = function () {
 
     ty = ty - (height / 2);
 
-    for (i = 0; i < metadata.length; i++) {
-      columnName = metadata[i];
+    for (columnName of metadata) {
       tx += metadataXStep;
-
       if (typeof this.data[columnName] !== undefined) {
         this.canvas.fillStyle = this.data[columnName];
         this.canvas.fillRect(tx, ty, width, height);
@@ -119,9 +119,9 @@ Branch.prototype.drawMetadataHeading = function (tx, ty) {
   }
 
   // Drawing Column headings
-  this.canvas.font = '12px Sans-serif';
+  this.canvas.font = `${this.tree.textSize}px Sans-serif`;
   this.canvas.fillStyle = 'black';
-
+  tx += this.tree.metadataXStep * 0.45;
   for (i = 0; i < metadata.length; i++) {
     columnName = metadata[i];
     tx += this.tree.metadataXStep;
@@ -131,13 +131,13 @@ Branch.prototype.drawMetadataHeading = function (tx, ty) {
       this.canvas.textAlign = 'left';
       // x and y axes changed because of rotate
       // Adding + 6 to adjust the position
-      this.canvas.fillText(columnName, 20, tx + 6);
+      this.canvas.fillText(columnName, ty + 20, tx + 6);
     } else if (this.tree.treeType === 'hierarchical') {
       this.canvas.textAlign = 'right';
-      this.canvas.fillText(columnName, -20, tx + 8);
+      this.canvas.fillText(columnName, - ty - 20, tx + 8);
     } else if (this.tree.treeType === 'diagonal') {
       this.canvas.textAlign = 'left';
-      this.canvas.fillText(columnName, 20, tx + 6);
+      this.canvas.fillText(columnName, ty + 20, tx + 6);
     }
     // Rotate canvas back to normal position
     this.canvas.rotate(Math.PI / 2);
@@ -152,7 +152,7 @@ export default function metadataPlugin(decorate) {
     // Takes an array of metadata column headings to overlay on the tree
     tree.selectedMetadataColumns = [];
     // x step for metadata
-    tree.metadataXStep = 15;
+    tree.metadataXStep = tree.metadataXStep || 15;
     // Boolean to detect if metadata heading is drawn or not
     tree.metadataHeadingDrawn = false;
 
@@ -204,7 +204,6 @@ export default function metadataPlugin(decorate) {
     if (this.tree.showMetadata) {
       totalSize += this.tree.getMetadataLength();
     }
-
     return totalSize;
   });
 }
