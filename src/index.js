@@ -1,5 +1,13 @@
 import PhyloCanvas, { Tree, Branch } from 'phylocanvas';
 
+function isCircularTree(tree) {
+  return tree.treeType === 'circular' || tree.treeType === 'radial';
+}
+function isRectangularTree(tree) {
+  return tree.treeType === 'diagonal' ||
+         tree.treeType === 'rectangular' || tree.treeType === 'hierarchical';
+}
+
 Tree.prototype.viewMetadataColumns =
   function (metadataColumnArray = this.getMetadataColumnHeadings()) {
     this.metadata.show = true;
@@ -10,14 +18,13 @@ Tree.prototype.viewMetadataColumns =
   };
 
 Tree.prototype.getMetadataColumnHeadings = function () {
-  var metadataColumnArray = [];
-  for (var i = 0; i < this.leaves.length; i++) {
-    if (Object.keys(this.leaves[i].data).length > 0) {
-      metadataColumnArray = Object.keys(this.leaves[i].data);
-      break;
+  for (const leave of this.leaves) {
+    const keys = Object.keys(leave.data);
+    if (keys.length > 0) {
+      return keys;
     }
   }
-  return metadataColumnArray;
+  return [];
 };
 
 Tree.prototype.hasMetadataHeadings = function () {
@@ -54,19 +61,16 @@ Tree.prototype.clearMetadata = function () {
 };
 
 Branch.prototype.drawMetadata = function () {
-  const context = this.canvas;
-  var padMaxLabelWidth = 0;
+  let padMaxLabelWidth = 0;
   if (this.tree.showLabels || (this.tree.hoverLabel && this.highlighted)) {
     padMaxLabelWidth = this.tree.maxLabelLength[this.tree.treeType];
   }
-  var tx = this.getLabelStartX() + padMaxLabelWidth;
-  var ty = 0;
+  let tx = this.getLabelStartX() + padMaxLabelWidth;
+  let ty = 0;
 
-  var metadata = [];
-  var height = Math.min(this.tree.step, this.tree.baseNodeSize);
-  var width = this.tree.metadata.step - this.tree.metadata.padding;
-  var i;
-  var columnName;
+  const height = isCircularTree(this.tree) ? this.tree.baseNodeSize :
+                 this.tree.step;
+  const width = this.tree.metadata.step - this.tree.metadata.padding;
 
   if (this.tree.alignLabels) {
     if (this.tree.treeType === 'rectangular') {
@@ -85,16 +89,14 @@ Branch.prototype.drawMetadata = function () {
     this.canvas.beginPath();
 
     // If no columns specified, then draw all columns
-    if (this.tree.metadata.selectedColumns.length > 0) {
-      metadata = this.tree.metadata.selectedColumns;
-    } else {
-      metadata = Object.keys(this.data);
-    }
+    const metadata = (this.tree.metadata.selectedColumns.length > 0) ?
+                     this.tree.metadata.selectedColumns :
+                     Object.keys(this.data);
 
     tx += this.tree.metadata.padding * 2;
     ty = ty - (height / 2);
 
-    for (columnName of metadata) {
+    for (const columnName of metadata) {
       if (typeof this.data[columnName] !== undefined) {
         this.canvas.fillStyle = this.data[columnName];
         this.canvas.fillRect(tx, ty, width, height);
