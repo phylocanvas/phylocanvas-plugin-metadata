@@ -44,7 +44,8 @@ Tree.prototype.getMetadataLength = function (delegate) {
 Tree.prototype.getMetadataHeadingLength = function () {
   let maxSize = 0;
   if (this.hasMetadataHeadings()) {
-    this.canvas.font = `${this.textSize}px Sans-serif`;
+    const fontSize = Math.min(this.textSize, this.metadata.step);
+    this.canvas.font = `${fontSize}px Sans-serif`;
     for (const colName of this.metadata.selectedColumns) {
       maxSize = Math.max(maxSize, this.canvas.measureText(colName).width + 20);
     }
@@ -72,16 +73,15 @@ Branch.prototype.drawMetadata = function () {
                  this.tree.step;
   const width = this.tree.metadata.step - this.tree.metadata.padding;
 
+  // add padding to both x and y axis
   if (this.tree.alignLabels) {
-    if (this.tree.treeType === 'rectangular') {
-      tx += (this.tree.farthestNodeFromRootX * this.tree.currentBranchScale - this.centerx);
-    } else if (this.tree.treeType === 'hierarchical') {
-      tx += (this.tree.farthestNodeFromRootY * this.tree.currentBranchScale - this.centery);
-    }
+    tx += this.tree.labelAlign.getLabelOffset(this);
   }
+  tx += this.tree.metadata.padding * 2;
+  ty = ty - (height / 2);
 
   if (!this.tree.metadata.headingDrawn && this.tree.hasMetadataHeadings()) {
-    this.drawMetadataHeading(tx, height * 0.75);
+    this.drawMetadataHeading(tx, height * 1.5);
     this.tree.metadata.headingDrawn = true;
   }
 
@@ -92,9 +92,6 @@ Branch.prototype.drawMetadata = function () {
     const metadata = (this.tree.metadata.selectedColumns.length > 0) ?
                      this.tree.metadata.selectedColumns :
                      Object.keys(this.data);
-
-    tx += this.tree.metadata.padding * 2;
-    ty = ty - (height / 2);
 
     for (const columnName of metadata) {
       if (typeof this.data[columnName] !== undefined) {
@@ -109,35 +106,31 @@ Branch.prototype.drawMetadata = function () {
 };
 
 Branch.prototype.drawMetadataHeading = function (x, y) {
+  const { treeType } = this.tree;
   const metadata = (this.tree.metadata.selectedColumns.length > 0) ?
                    this.tree.metadata.selectedColumns :
                    Object.keys(this.data);
-  let tx = x;
-  const ty = y;
+
   // Drawing Column headings
-  this.canvas.font = `${this.tree.textSize}px Sans-serif`;
+  const fontSize = Math.min(this.tree.textSize, this.tree.metadata.step);
+  this.canvas.font = `${fontSize}px Sans-serif`;
   this.canvas.fillStyle = 'black';
-  tx += this.tree.metadata.padding * 2;
+  this.canvas.textBaseline = 'middle';
+
+  let tx = x;
   tx += (this.tree.metadata.step - this.tree.metadata.padding) / 2;
+
+  // Rotate canvas to write column headings
+  this.canvas.rotate(-Math.PI / 2);
+
   for (const columnName of metadata) {
-    // Rotate canvas to write column headings
-    this.canvas.rotate(-Math.PI / 2);
-    if (this.tree.treeType === 'rectangular') {
-      this.canvas.textAlign = 'left';
-      // x and y axes changed because of rotate
-      // Adding + 6 to adjust the position
-      this.canvas.fillText(columnName, ty, tx + 6);
-    } else if (this.tree.treeType === 'hierarchical') {
-      this.canvas.textAlign = 'right';
-      this.canvas.fillText(columnName, -ty, tx + 8);
-    } else if (this.tree.treeType === 'diagonal') {
-      this.canvas.textAlign = 'left';
-      this.canvas.fillText(columnName, ty, tx + 6);
-    }
+    this.canvas.textAlign = (treeType === 'hierarchical') ? 'right' : 'left';
+    this.canvas.fillText(columnName, treeType === 'hierarchical' ? -y : y, tx);
     tx += this.tree.metadata.step;
-    // Rotate canvas back to normal position
-    this.canvas.rotate(Math.PI / 2);
   }
+
+  // Rotate canvas back to normal position
+  this.canvas.rotate(Math.PI / 2);
 };
 
 export default function metadataPlugin(decorate) {
@@ -150,7 +143,7 @@ export default function metadataPlugin(decorate) {
       padding: 2,
       selectedColumns: [],
       headingDrawn: false,
-    }, tree.metadata);
+    }, tree.metadata || {});
 
     return tree;
   });
