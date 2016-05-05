@@ -33,11 +33,7 @@ Tree.prototype.hasMetadataHeadings = function () {
 };
 
 Tree.prototype.getMetadataLength = function (delegate) {
-  var padMaxLabelWidth = 0;
-  if (this.showLabels || (this.hoverLabel && this.highlighted)) {
-    padMaxLabelWidth = this.maxLabelLength[this.treeType];
-  }
-  return padMaxLabelWidth +
+  return this.baseNodeSize * 2 + this.metadata.padding +
          this.getMetadataColumnHeadings().length * this.metadata.step;
 };
 
