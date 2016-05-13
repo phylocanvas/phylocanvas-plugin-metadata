@@ -144,6 +144,14 @@ export default function metadataPlugin(decorate) {
     return tree;
   });
 
+  const alignLabels = Tree.prototype.__lookupGetter__('alignLabels');
+  Tree.prototype.__defineGetter__('alignLabels', function () {
+    if (this.metadata.show) {
+      return this.labelAlignEnabled;
+    }
+    return alignLabels.call(this);
+  });
+
   decorate(Tree, 'draw', function (delegate, args) {
     delegate.apply(this, args);
     this.metadata.headingDrawn = false;
