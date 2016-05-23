@@ -1,11 +1,10 @@
-import PhyloCanvas, { Tree, Branch } from 'phylocanvas';
+import PhyloCanvas, { Tree, Branch, utils } from 'phylocanvas';
+
+const { constants } = utils;
+const { Angles } = constants;
 
 function isCircularTree(tree) {
   return tree.treeType === 'circular' || tree.treeType === 'radial';
-}
-function isRectangularTree(tree) {
-  return tree.treeType === 'diagonal' ||
-         tree.treeType === 'rectangular' || tree.treeType === 'hierarchical';
 }
 
 Tree.prototype.viewMetadataColumns =
@@ -34,13 +33,13 @@ Tree.prototype.hasMetadataHeadings = function () {
 
 Tree.prototype.getMetadataLength = function (delegate) {
   return this.baseNodeSize * 2 + this.metadata.padding +
-         this.getMetadataColumnHeadings().length * this.metadata.step;
+         this.getMetadataColumnHeadings().length * this.metadata.blockLength;
 };
 
 Tree.prototype.getMetadataHeadingLength = function () {
   let maxSize = 0;
   if (this.hasMetadataHeadings()) {
-    const fontSize = Math.min(this.textSize, this.metadata.step);
+    const fontSize = Math.min(this.textSize, this.metadata.blockLength);
     this.canvas.font = `${fontSize}px Sans-serif`;
     for (const colName of this.metadata.selectedColumns) {
       maxSize = Math.max(maxSize, this.canvas.measureText(colName).width + 20);
@@ -64,18 +63,20 @@ Branch.prototype.drawMetadata = function () {
   }
   let tx = this.getLabelStartX() + padMaxLabelWidth;
   let ty = 0;
-
-  const height = isCircularTree(this.tree) ? this.tree.baseNodeSize :
-                 this.tree.step;
-  const width = this.tree.metadata.step - this.tree.metadata.padding;
+  const labelOffset = this.tree.alignLabels ? this.tree.labelAlign.getLabelOffset(this) : 0;
+  const maxHeight =
+    isCircularTree(this.tree) ?
+      Angles.FULL * (Math.hypot(this.centerx - this.startx, this.centery - this.starty) + tx + labelOffset) / this.tree.leaves.length :
+      this.tree.step;
+  const height = Math.min(maxHeight, this.tree.metadata.blockSize);
+  const width = this.tree.metadata.blockLength - this.tree.metadata.padding;
 
   // add padding to both x and y axis
   if (this.tree.alignLabels) {
-    tx += this.tree.labelAlign.getLabelOffset(this);
+    tx += labelOffset;
   }
   tx += this.tree.metadata.padding * 2;
   ty = ty - (height / 2);
-
   if (!this.tree.metadata.headingDrawn && this.tree.hasMetadataHeadings()) {
     this.drawMetadataHeading(tx, height * 1.5);
     this.tree.metadata.headingDrawn = true;
@@ -94,7 +95,7 @@ Branch.prototype.drawMetadata = function () {
         this.canvas.fillStyle = this.data[columnName];
         this.canvas.fillRect(tx, ty, width, height);
       }
-      tx += this.tree.metadata.step;
+      tx += this.tree.metadata.blockLength;
     }
     this.canvas.stroke();
     this.canvas.closePath();
@@ -108,13 +109,13 @@ Branch.prototype.drawMetadataHeading = function (x, y) {
                    Object.keys(this.data);
 
   // Drawing Column headings
-  const fontSize = Math.min(this.tree.textSize, this.tree.metadata.step);
+  const fontSize = Math.min(this.tree.textSize, this.tree.metadata.blockLength);
   this.canvas.font = `${fontSize}px Sans-serif`;
   this.canvas.fillStyle = 'black';
   this.canvas.textBaseline = 'middle';
 
   let tx = x;
-  tx += (this.tree.metadata.step - this.tree.metadata.padding) / 2;
+  tx += (this.tree.metadata.blockLength - this.tree.metadata.padding) / 2;
 
   // Rotate canvas to write column headings
   this.canvas.rotate(-Math.PI / 2);
@@ -122,7 +123,7 @@ Branch.prototype.drawMetadataHeading = function (x, y) {
   for (const columnName of metadata) {
     this.canvas.textAlign = (treeType === 'hierarchical') ? 'right' : 'left';
     this.canvas.fillText(columnName, treeType === 'hierarchical' ? -y : y, tx);
-    tx += this.tree.metadata.step;
+    tx += this.tree.metadata.blockLength;
   }
 
   // Rotate canvas back to normal position
@@ -135,8 +136,9 @@ export default function metadataPlugin(decorate) {
 
     tree.metadata = Object.assign({}, {
       show: false,
-      step: 20,
-      padding: 2,
+      blockLength: 20,
+      blockSize: 200,
+      padding: 0,
       selectedColumns: [],
       headingDrawn: false,
     }, tree.metadata || {});
@@ -147,7 +149,7 @@ export default function metadataPlugin(decorate) {
   const alignLabels = Tree.prototype.__lookupGetter__('alignLabels');
   Tree.prototype.__defineGetter__('alignLabels', function () {
     if (this.metadata.show) {
-      return this.labelAlignEnabled;
+      return this.labelAlign && this.labelAlignEnabled;
     }
     return alignLabels.call(this);
   });
