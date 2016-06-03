@@ -2,7 +2,7 @@
   "name": "phylocanvas-plugin-metadata",
   "version": "1.1.0",
   "description": "Display binary data adjacent to tree leaves.",
-  "main": "index.js",
+  "main": "dist/index.min.js",
   "scripts": {
     "start": "webpack-dev-server --inline",
     "build": "NODE_ENV=production webpack",
@@ -33,5 +33,9 @@
     "phylocanvas": "^2.4.0",
     "webpack": "^1.10.5",
     "webpack-dev-server": "^1.10.1"
-  }
+  },
+  "files": [
+    "dist",
+    "*.md"
+  ]
 }
