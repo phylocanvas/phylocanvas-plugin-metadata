@@ -30,7 +30,7 @@
     "babel-preset-es2015": "^6.3.13",
     "babel-preset-stage-0": "^6.3.13",
     "eslint-config-cgps": "github:imperialcollegelondon/eslint-config-cgps",
-    "phylocanvas": "github:phylocanvas/phylocanvas",
+    "phylocanvas": "^2.4.0",
     "webpack": "^1.10.5",
     "webpack-dev-server": "^1.10.1"
   }
