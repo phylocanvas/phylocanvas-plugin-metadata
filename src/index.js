@@ -125,7 +125,7 @@ Branch.prototype.drawMetadata = function () {
         Angles.FULL * length / tree.leaves.length :
         0;
     for (const columnName of metadata) {
-      if (typeof this.data[columnName] !== undefined) {
+      if (typeof this.data[columnName] !== 'undefined') {
         this.canvas.fillStyle = this.data[columnName];
         this.canvas.fillRect(tx, ty, length, size + i * stepCorrection);
       }
