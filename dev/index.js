@@ -26,9 +26,11 @@ const tree = PhyloCanvas.createTree('phylocanvas', {
     blockLength: 32,
     blockSize: 32,
     padding: 16,
-    // headers: false,
+    // showHeaders: false,
+    // showLabels: false,
     underlineHeaders: 'true',
     // rotateHeaders: true,
+    font: '16px Sans-serif',
   },
 });
 
@@ -61,11 +63,14 @@ tree.on('loaded', function () {
     if (tree.leaves[i]) {
       tree.leaves[i].data = {};
       for (let j = 0; j < numberOfColumns; j++) {
-        // tree.leaves[i].data[`col_${j}`] = getRandomColour();
-        tree.leaves[i].data[`col_${j}`] = {
-          label: getRandomLabel(),
-          colour: getRandomColour(),
-        };
+        if (Math.random() < 0.33) {
+          tree.leaves[i].data[`col_${j}`] = getRandomColour();
+        } else {
+          tree.leaves[i].data[`col_${j}`] = {
+            label: getRandomLabel(),
+            colour: getRandomColour(),
+          };
+        }
       }
     }
   }
