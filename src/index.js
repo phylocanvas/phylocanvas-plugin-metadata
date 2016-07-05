@@ -1,3 +1,5 @@
+/* eslint no-param-reassign: ["error", { "props": false }] */
+
 import PhyloCanvas, { Tree, Branch, utils } from 'phylocanvas';
 
 const { constants } = utils;
@@ -6,15 +8,6 @@ const { Angles } = constants;
 function isCircularTree(tree) {
   return tree.treeType === 'circular' || tree.treeType === 'radial';
 }
-
-Tree.prototype.viewMetadataColumns =
-  function (metadataColumnArray = this.getMetadataColumnHeadings()) {
-    this.metadata.show = true;
-    this.metadata.selectedColumns = metadataColumnArray;
-    // Fit to canvas window
-    this.fitInPanel();
-    this.draw();
-  };
 
 Tree.prototype.getMetadataColumnHeadings = function () {
   for (const leaf of this.leaves) {
@@ -27,13 +20,20 @@ Tree.prototype.getMetadataColumnHeadings = function () {
 };
 
 Tree.prototype.hasMetadataHeadings = function () {
-  return this.treeType === 'diagonal' || (this.alignLabels &&
-    this.treeType === 'rectangular' || this.treeType === 'hierarchical');
+  if (!this.metadata.headers) {
+    return false;
+  }
+  const { treeType, alignLabels } = this;
+  return treeType === 'diagonal' ||
+    (alignLabels && treeType === 'rectangular' || treeType === 'hierarchical');
 };
 
 Tree.prototype.getMetadataLength = function () {
-  return this.baseNodeSize * 2 + this.metadata.padding +
-         this.getMetadataColumnHeadings().length * this.metadata.blockLength;
+  const { blockLength, padding, _labelWidthTotal } = this.metadata;
+  return this.baseNodeSize * 2 +
+         padding +
+         _labelWidthTotal +
+         this.getMetadataColumnHeadings().length * (blockLength + padding);
 };
 
 Tree.prototype.getMetadataHeadingLength = function () {
@@ -41,7 +41,7 @@ Tree.prototype.getMetadataHeadingLength = function () {
   if (this.hasMetadataHeadings()) {
     const fontSize = Math.min(this.textSize, this.metadata.blockLength);
     this.canvas.font = `${fontSize}px Sans-serif`;
-    for (const colName of this.metadata.selectedColumns) {
+    for (const colName of this.metadata.columns) {
       maxSize = Math.max(maxSize, this.canvas.measureText(colName).width + 20);
     }
   }
@@ -81,7 +81,10 @@ Tree.prototype.clearMetadata = function () {
 };
 
 Branch.prototype.drawMetadata = function () {
+  const ctx = this.tree.canvas;
   const tree = this.tree;
+  const { blockSize, blockLength, padding, propertyName, fillStyle, font,
+          columns, _maxLabelWidth } = this.tree.metadata;
 
   // set initial x and y coordinates
   let tx = this.getLabelStartX();
@@ -93,89 +96,154 @@ Branch.prototype.drawMetadata = function () {
 
   // makes sure that the block size is not greater than tree step or max angle
   const maxSize = tree.getMetadataMaxBlockSize();
-  const size = Math.min(maxSize, tree.metadata.blockSize);
-
-  // remove padding from the block length
-  const length = tree.metadata.blockLength - tree.metadata.padding;
+  const size = Math.min(maxSize, blockSize);
 
   // add padding to both x and y axis
   if (tree.alignLabels) {
     tx += tree.labelAlign.getLabelOffset(this);
   }
-  tx += tree.metadata.padding * 2;
+  tx += padding;
   ty = ty - (size / 2);
 
   // draw column headers
-  if (!tree.metadata.headingDrawn && tree.hasMetadataHeadings()) {
-    this.drawMetadataHeading(tx, size * 1.5);
-    tree.metadata.headingDrawn = true;
+  if (!tree.metadata._headingDrawn && tree.hasMetadataHeadings()) {
+    this.drawMetadataHeading(tx, size);
+    tree.metadata._headingDrawn = true;
   }
 
-  if (Object.keys(this.data).length > 0) {
-    this.canvas.beginPath();
+  const data = this[propertyName];
+  if (Object.keys(data).length > 0) {
+    ctx.beginPath();
 
     // If no columns specified, then draw all columns
-    const metadata = (tree.metadata.selectedColumns.length > 0) ?
-                     tree.metadata.selectedColumns :
-                     Object.keys(this.data);
+    const columnNames = columns.length > 0 ? columns : Object.keys(data);
 
     let i = 1;
     const stepCorrection =
       isCircularTree(tree) && tree.alignLabels ?
-        Angles.FULL * length / tree.leaves.length :
+        Angles.FULL * blockLength / tree.leaves.length :
         0;
-    for (const columnName of metadata) {
-      if (typeof this.data[columnName] !== 'undefined') {
-        this.canvas.fillStyle = this.data[columnName];
-        this.canvas.fillRect(tx, ty, length, size + i * stepCorrection);
+    for (const columnName of columnNames) {
+      if (typeof data[columnName] !== 'undefined') {
+        ctx.fillStyle = data[columnName].colour || data[columnName];
+        ctx.fillRect(tx, ty, blockLength, size + i * stepCorrection);
+        if (typeof data[columnName].label === 'string') {
+          ctx.font = font;
+          ctx.fillStyle = fillStyle;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(data[columnName].label,
+            tx + blockLength + padding / 4, ty + size / 2);
+        }
       }
-      tx += tree.metadata.blockLength;
+      tx += blockLength + padding + _maxLabelWidth[columnName];
       i++;
     }
-    this.canvas.stroke();
-    this.canvas.closePath();
+    ctx.stroke();
+    ctx.closePath();
   }
 };
 
 Branch.prototype.drawMetadataHeading = function (x, y) {
+  const ctx = this.tree.canvas;
   const { treeType } = this.tree;
-  const metadata = (this.tree.metadata.selectedColumns.length > 0) ?
-                   this.tree.metadata.selectedColumns :
+  const { _maxLabelWidth, blockLength, padding, lineWidth, fillStyle,
+          strokeStyle, underlineHeaders, rotateHeaders } = this.tree.metadata;
+  const metadata = (this.tree.metadata.columns.length > 0) ?
+                   this.tree.metadata.columns :
                    Object.keys(this.data);
 
   // Drawing Column headings
-  const fontSize = Math.min(this.tree.textSize, this.tree.metadata.blockLength);
-  this.canvas.font = `${fontSize}px Sans-serif`;
-  this.canvas.fillStyle = 'black';
-  this.canvas.textBaseline = 'middle';
+  ctx.font = this.tree.metadata.font;
+  ctx.fillStyle = fillStyle;
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = lineWidth;
 
   let tx = x;
-  tx += (this.tree.metadata.blockLength - this.tree.metadata.padding) / 2;
-
-  // Rotate canvas to write column headings
-  this.canvas.rotate(-Math.PI / 2);
-
+  const ty = treeType === 'hierarchical' ? -y : y;
   for (const columnName of metadata) {
-    this.canvas.textAlign = (treeType === 'hierarchical') ? 'right' : 'left';
-    this.canvas.fillText(columnName, treeType === 'hierarchical' ? -y : y, tx);
-    tx += this.tree.metadata.blockLength;
+    const headerLength = blockLength + _maxLabelWidth[columnName];
+    if (rotateHeaders) {
+      ctx.textAlign = (treeType === 'hierarchical') ? 'right' : 'left';
+      ctx.textBaseline = 'middle';
+      this.canvas.rotate(-Math.PI / 2);
+      this.canvas.fillText(columnName, ty, tx + headerLength / 2);
+      this.canvas.rotate(Math.PI / 2);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = (treeType === 'hierarchical') ? 'top' : 'bottom';
+      this.canvas.fillText(columnName, tx + headerLength / 2, -ty);
+    }
+    if (underlineHeaders) {
+      const ly = (treeType === 'hierarchical') ? y - lineWidth : -y + lineWidth;
+      ctx.beginPath();
+      ctx.moveTo(tx, ly);
+      ctx.lineTo(tx + headerLength, ly);
+      ctx.stroke();
+      ctx.closePath();
+    }
+    tx += headerLength + padding;
   }
-
-  // Rotate canvas back to normal position
-  this.canvas.rotate(Math.PI / 2);
 };
 
+function setMaxLabelWidths(tree) {
+  const ctx = tree.canvas;
+  const { propertyName, font, columns, rotateHeaders } = tree.metadata;
+
+  // If no columns specified, then draw all columns
+  const columnNames =
+    columns.length > 0 ? columns : Object.keys(tree.leaves[0][propertyName]);
+
+  ctx.font = font;
+
+  const maxLabelWidth = {};
+  for (const col of columnNames) {
+    maxLabelWidth[col] = rotateHeaders ? 0 : ctx.measureText(col).width;
+  }
+
+  for (const leaf of tree.leaves) {
+    const data = leaf[propertyName];
+    for (const columnName of columnNames) {
+      if (data[columnName] && typeof data[columnName].label === 'string') {
+        const textWidth = ctx.measureText(data[columnName].label).width;
+        if (textWidth > maxLabelWidth[columnName]) {
+          maxLabelWidth[columnName] = textWidth;
+        }
+      }
+    }
+  }
+
+  tree.metadata._maxLabelWidth = maxLabelWidth;
+
+  tree.metadata._labelWidthTotal = 0;
+  for (const columnName of columnNames) {
+    tree.metadata._labelWidthTotal += maxLabelWidth[columnName];
+  }
+}
+
 export default function metadataPlugin(decorate) {
-  decorate(PhyloCanvas, 'createTree', function (delegate, args) {
+  decorate(PhyloCanvas, 'createTree', (delegate, args) => {
     const tree = delegate(...args);
 
     tree.metadata = Object.assign({}, {
+      _headingDrawn: false,
+      _maxLabelWidth: {},
+      _labelWidthTotal: 0,
       show: false,
       blockLength: 20,
       blockSize: Number.MAX_SAFE_INTEGER,
       padding: 0,
-      selectedColumns: [],
-      headingDrawn: false,
+      columns: [],
+      propertyName: 'data',
+      headers: true,
+      underlineHeaders: false,
+      rotateHeaders: false,
+      fillStyle: 'black',
+      strokeStyle: 'black',
+      lineWidth: 2,
+      font: '16px Sans-serif',
+      textBaseline: 'bottom',
+      textAlign: 'center',
     }, tree.metadata || {});
 
     return tree;
@@ -191,8 +259,9 @@ export default function metadataPlugin(decorate) {
 
   decorate(Tree, 'draw', function (delegate, args) {
     delegate.apply(this, args);
-    this.metadata.headingDrawn = false;
+    this.metadata._headingDrawn = false;
     this.metadata.maxBlockSize = null;
+    setMaxLabelWidths(this);
   });
 
   decorate(Tree, 'getBounds', function (delegate, args) {
@@ -208,7 +277,7 @@ export default function metadataPlugin(decorate) {
     return [
       [ minx - (labelsOnX ? metadataHeadingLength : 0),
         miny - (labelsOnY ? metadataHeadingLength : 0) ],
-      [ maxx, maxy ]
+      [ maxx, maxy ],
     ];
   });
 
