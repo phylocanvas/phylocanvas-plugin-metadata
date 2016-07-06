@@ -47,7 +47,7 @@ tree.on('loaded', function () {
 ## Options
 
 A list of available options:
-* `active`: A boolean flag to show or hide the metadata blocks on the tree.
+* `active`: A boolean flag to show or hide the metadata blocks on the tree. The default value is `true`.
 * `showHeaders`: A boolean flag to show or hide header labels. The default value is `true`.
 * `showLabels`: A boolean flag to show or hide block labels. The default value is `true`.
 * `blockLength`: The length of each block is treated as:

@@ -1,6 +1,6 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 
-import PhyloCanvas, { Tree, Branch, utils } from 'phylocanvas';
+import PhyloCanvas, { Tree, Branch, Prerenderer, utils } from 'phylocanvas';
 
 const { constants } = utils;
 const { Angles } = constants;
@@ -60,8 +60,8 @@ function getMetadataLength(tree) {
 }
 
 function getMetadataMaxBlockSize(tree) {
-  if (tree.metadata.maxBlockSize) {
-    return tree.metadata.maxBlockSize;
+  if (tree.metadata._maxBlockSize) {
+    return tree.metadata._maxBlockSize;
   }
 
   // the max block size of circular trees is the max angle in pixels
@@ -77,8 +77,8 @@ function getMetadataMaxBlockSize(tree) {
                     tx + offset;
       if (hypot > maxHypot) maxHypot = hypot;
     }
-    tree.metadata.maxBlockSize = Angles.FULL * maxHypot / tree.leaves.length;
-    return tree.metadata.maxBlockSize;
+    tree.metadata._maxBlockSize = Angles.FULL * maxHypot / tree.leaves.length;
+    return tree.metadata._maxBlockSize;
   }
 
   // the max block size for non-circular trees is equal to the tree step
@@ -254,13 +254,18 @@ export default function metadataPlugin(decorate) {
     return alignLabels.call(this);
   });
 
-  decorate(Tree, 'draw', function (delegate, args) {
+  decorate(Prerenderer, 'run', function (delegate, args) {
     delegate.apply(this, args);
+    const [ tree ] = args;
+    setMaxLabelWidths(tree);
+    tree.metadata._maxBlockSize = null;
+  });
+
+  decorate(Tree, 'draw', function (delegate, args) {
     if (this.metadata.active) {
       this.metadata._headingDrawn = false;
-      this.metadata.maxBlockSize = null;
-      setMaxLabelWidths(this);
     }
+    delegate.apply(this, args);
   });
 
   decorate(Tree, 'getBounds', function (delegate, args) {
