@@ -25,7 +25,8 @@ const devConfig = {
 const buildConfig = {
   entry: './src/index.js',
   output: {
-    filename: 'index.js',
+    path: path.join(__dirname, 'dist'),
+    filename: 'index.min.js',
     libraryTarget: 'umd',
   },
   module: {
