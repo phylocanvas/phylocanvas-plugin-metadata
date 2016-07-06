@@ -13,11 +13,20 @@ Phylocanvas.plugin(metadataPlugin);
 
 const tree = Phylocanvas.createTree('id', {
   metadata: {
-    show: false,
-    blockLength: 20,
-    blockSize: 200,
-    padding: 0,
-    selectedColumns: [],
+    active: true,
+    showHeaders: true,
+    showLabels: true,
+    blockLength: 32,
+    blockSize: null,
+    padding: 8,
+    columns: [],
+    propertyName: 'data',
+    underlineHeaders: true,
+    headerAngle: 90,
+    fillStyle: 'black',
+    strokeStyle: 'black',
+    lineWidth: 1,
+    font: null,
   }
 })
 
@@ -38,7 +47,7 @@ tree.on('loaded', function () {
 ## Options
 
 A list of available options:
-* `show`: A boolean flag to show or hide the metadata blocks on the tree.
+* `active`: A boolean flag to show or hide the metadata blocks on the tree.
 * `showHeaders`: A boolean flag to show or hide header labels. The default value is `true`.
 * `showLabels`: A boolean flag to show or hide block labels. The default value is `true`.
 * `blockLength`: The length of each block is treated as:
@@ -52,6 +61,7 @@ A list of available options:
 * `padding`: The padding between the metadata blocks. The default value is `0`.
 * `columns`: An array of column names to be displayed on the tree. The default value is an empty array which displays all columns.
 * `propertyName`: The name of the property on the branch object which contains the metadata values. The default value is `'data'`.
+* `headerAngle`: An angle (in degrees) to rotate the header labels. The default value is `90` degrees.
 * `underlineHeaders`: A boolean flag to draw a line under header labels. The default value is `false`.
 * `fillStyle`: A valid stroke style (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillStyle) to be used when drawing. The default value is `'black'`.
 * `strokeStyle`: A valid stroke style (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/strokeStyle) to be used when drawing. The default value is `'black'`.
