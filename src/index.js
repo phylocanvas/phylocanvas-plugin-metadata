@@ -5,6 +5,27 @@ import PhyloCanvas, { Tree, Branch, utils } from 'phylocanvas';
 const { constants } = utils;
 const { Angles } = constants;
 
+const DEFAULTS = {
+  _headingDrawn: false,
+  _maxLabelWidth: {},
+  _labelWidthTotal: 0,
+  show: false,
+  showHeaders: true,
+  showLabels: true,
+  blockLength: 20,
+  blockSize: Number.MAX_SAFE_INTEGER,
+  padding: 0,
+  columns: [],
+  propertyName: 'data',
+  underlineHeaders: false,
+  rotateHeaders: false,
+  headersRotationAngle: 0,
+  fillStyle: 'black',
+  strokeStyle: 'black',
+  lineWidth: 1,
+  font: null,
+};
+
 function isCircularTree(tree) {
   return tree.treeType === 'circular' || tree.treeType === 'radial';
 }
@@ -231,26 +252,7 @@ export default function metadataPlugin(decorate) {
   decorate(PhyloCanvas, 'createTree', (delegate, args) => {
     const tree = delegate(...args);
 
-    tree.metadata = Object.assign({}, {
-      _headingDrawn: false,
-      _maxLabelWidth: {},
-      _labelWidthTotal: 0,
-      show: false,
-      showHeaders: true,
-      showLabels: true,
-      blockLength: 20,
-      blockSize: Number.MAX_SAFE_INTEGER,
-      padding: 0,
-      columns: [],
-      propertyName: 'data',
-      underlineHeaders: false,
-      rotateHeaders: false,
-      headersRotationAngle: 0,
-      fillStyle: 'black',
-      strokeStyle: 'black',
-      lineWidth: 1,
-      font: null,
-    }, tree.metadata || {});
+    tree.metadata = Object.assign({}, DEFAULTS, tree.metadata || {});
 
     return tree;
   });
