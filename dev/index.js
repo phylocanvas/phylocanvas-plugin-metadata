@@ -1,3 +1,5 @@
+require('phylocanvas/polyfill');
+
 import PhyloCanvas, * as phyloComponents from 'phylocanvas';
 import metadataPlugin from '../src/index';
 

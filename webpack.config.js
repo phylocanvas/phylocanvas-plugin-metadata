@@ -1,8 +1,9 @@
+const path = require('path');
 const webpack = require('webpack');
 
 const loaders = [
   { test: /\.js$/,
-    exclude: /webpack/,
+    exclude: path.join(__dirname, 'node_modules'),
     loader: 'babel',
     query: {
       presets: [ 'es2015', 'stage-0' ],
