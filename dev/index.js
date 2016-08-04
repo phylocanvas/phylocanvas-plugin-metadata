@@ -3,14 +3,15 @@ require('phylocanvas/polyfill');
 import PhyloCanvas, * as phyloComponents from 'phylocanvas';
 import metadataPlugin from '../src/index';
 
+const { undoPointTranslation } = phyloComponents.utils.canvas;
+
 PhyloCanvas.plugin(metadataPlugin);
 
 function getRandomColour() {
   return `#${Math.random().toString(16).slice(-6)}`;
 }
 
-function getRandomLabel() {
-  const length = 1 + Math.random() * 16;
+function getRandomLabel(length = 1 + Math.random() * 16) {
   let text = '';
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
   for (let i = 0; i < length; i++) {
@@ -22,18 +23,19 @@ function getRandomLabel() {
 const numberOfColumns = 4;
 
 const tree = PhyloCanvas.createTree('phylocanvas', {
-  padding: 1,
+  padding: 0,
   metadata: {
-    show: true,
-    blockLength: 32,
-    blockSize: 32,
-    padding: 16,
-    // showHeaders: false,
-    // showLabels: false,
-    underlineHeaders: 'true',
-    // rotateHeaders: true,
-    font: '16px Sans-serif',
+    // show: true,
+    // blockLength: 32,
+    // blockSize: 32,
+    // padding: 16,
+    // // showHeaders: false,
+    // // showLabels: false,
+    // underlineHeaders: 'true',
+    // headerAngle: 0,
+    // // font: '16px Sans-serif',
   },
+  baseNodeSize: 50,
 });
 
 // create buttons
@@ -57,48 +59,46 @@ scaleRange.addEventListener('change', () => {
 });
 buttonForm.appendChild(scaleRange);
 
-tree.on('error', function (event) { throw event.error; });
+tree.on('error', event => { throw event.error; });
 
-tree.on('loaded', function () {
-  console.log('loaded');
-  for (let i = 0; i <= tree.leaves.length; i++) {
-    if (tree.leaves[i]) {
-      tree.leaves[i].data = {};
-      for (let j = 0; j < numberOfColumns; j++) {
-        if (Math.random() < 0.33) {
-          tree.leaves[i].data[`col_${j}`] = getRandomColour();
-        } else {
-          tree.leaves[i].data[`col_${j}`] = {
-            label: getRandomLabel(),
-            colour: getRandomColour(),
-          };
-        }
-      }
+tree.on('beforeFirstDraw', () => {
+  for (let j = 0; j < numberOfColumns; j++) {
+    const colName = getRandomLabel();
+    for (const leaf of tree.leaves) {
+      leaf.leafStyle = { lineWidth: 5, strokeStyle: 'red' };
+      if (!leaf.data) leaf.data = {};
+      leaf.data[colName] = {
+        label: getRandomLabel(),
+        colour: getRandomColour(),
+      };
     }
   }
-  // tree.viewMetadataColumns();
-
-  // tree.labelAlignEnabled = true;
-  // tree.showLabels = false;
-
-  // const bounds = tree.getBounds();
-  // const treeSize = [
-  //   bounds[1][0] - bounds[0][0],
-  //   bounds[1][1] - bounds[0][1],
-  // ];
-  // tree.metadata.step = Math.min(160, treeSize[0] / tree.getMetadataColumnHeadings().length);
-  // tree.metadata.padding = tree.metadata.step / 10;
-  // tree.setTextSize(50);
-  // tree.setNodeSize(50);
-
-  // tree.zoom = 10; tree.offsetx = -9500; tree.offsety = 200;
-
-  // tree.zoom = 6; tree.offsetx = -2000; tree.offsety = -2000;
-
-  tree.draw();
-  tree.fitInPanel();
-  tree.draw();
 });
+
+// tree.on('loaded', () => {
+//   // tree.viewMetadataColumns();
+//
+//   // tree.labelAlignEnabled = true;
+//   // tree.showLabels = false;
+//
+//   // const bounds = tree.getBounds();
+//   // const treeSize = [
+//   //   bounds[1][0] - bounds[0][0],
+//   //   bounds[1][1] - bounds[0][1],
+//   // ];
+//   // tree.metadata.step = Math.min(160, treeSize[0] / tree.getMetadataColumnHeadings().length);
+//   // tree.metadata.padding = tree.metadata.step / 10;
+//   // tree.setTextSize(50);
+//   // tree.setNodeSize(50);
+//
+//   // tree.zoom = 10; tree.offsetx = -9500; tree.offsety = 200;
+//
+//   // tree.zoom = 6; tree.offsetx = -2000; tree.offsety = -2000;
+//
+//   // tree.draw();
+//   // tree.fitInPanel();
+//   //tree.draw();
+// });
 
 tree.setTreeType('diagonal');
 tree.setTreeType('rectangular');
@@ -111,7 +111,12 @@ const originalDraw = tree.draw;
 tree.draw = (...args) => {
   originalDraw.apply(tree, args);
   const bounds = tree.getBounds();
-  tree.canvas.strokeRect(bounds[0][0], bounds[0][1], bounds[1][0] - bounds[0][0], bounds[1][1] - bounds[0][1]);
+
+  const min = undoPointTranslation({ x: bounds[0][0], y: bounds[0][1] }, tree);
+  const max = undoPointTranslation({ x: bounds[1][0], y: bounds[1][1] }, tree);
+  tree.canvas.strokeRect(
+    min.x, min.y, max.x - min.x, max.y - min.y
+  );
 };
 
 tree.load('(A:0.1,B:0.1,(C:0.1,D:0.1):0.1);');
