@@ -89,7 +89,7 @@ function drawMetadataHeading(branch, startX, startY) {
   const ctx = branch.tree.canvas;
   const { treeType } = branch.tree;
   const { _maxLabelWidth, _maxHeaderWidth, _maxHeaderHeight,
-          blockLength, padding, headerAngle,
+          blockLength, padding, headerAngle, showLabels,
           fillStyle, strokeStyle, underlineHeaders } = branch.tree.metadata;
   const metadata = (branch.tree.metadata.columns.length > 0) ?
                    branch.tree.metadata.columns :
@@ -107,7 +107,8 @@ function drawMetadataHeading(branch, startX, startY) {
   const sign = treeType === 'hierarchical' ? -1 : 1;
   let x = startX;
   for (const columnName of metadata) {
-    const headerLength = blockLength + _maxLabelWidth[columnName];
+    const headerLength =
+      blockLength + (showLabels ? _maxLabelWidth[columnName] : 0);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const labelX = x + headerLength / 2;
@@ -184,7 +185,10 @@ function drawMetadata(branch) {
             tx + blockLength + padding / 4, ty + size / 2);
         }
       }
-      tx += blockLength + padding + _maxLabelWidth[columnName];
+      tx += blockLength + padding;
+      if (showLabels) {
+        tx += _maxLabelWidth[columnName];
+      }
       i++;
     }
     ctx.stroke();
