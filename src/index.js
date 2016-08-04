@@ -250,12 +250,14 @@ export default function metadataPlugin(decorate) {
     return tree;
   });
 
-  const alignLabels = Tree.prototype.__lookupGetter__('alignLabels');
-  Tree.prototype.__defineGetter__('alignLabels', function () {
-    if (this.metadata.active) {
-      return this.labelAlign && this.labelAlignEnabled;
-    }
-    return alignLabels.call(this);
+  const alignLabels = Object.getOwnPropertyDescriptor(Tree.prototype, 'alignLabels').get;
+  Object.defineProperty(Tree.prototype, 'alignLabels', {
+    get() {
+      if (this.metadata.active) {
+        return this.labelAlign && this.labelAlignEnabled;
+      }
+      return alignLabels.call(this);
+    },
   });
 
   decorate(Prerenderer, 'run', function (delegate, args) {
