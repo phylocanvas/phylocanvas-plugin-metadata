@@ -69,8 +69,10 @@ tree.on('beforeFirstDraw', () => {
       if (!leaf.data) leaf.data = {};
       leaf.data[colName] = {
         label: getRandomLabel(),
-        colour: getRandomColour(),
       };
+      if (j % 2 === 0) {
+        leaf.data[colName].colour = getRandomColour();
+      }
     }
   }
 });
