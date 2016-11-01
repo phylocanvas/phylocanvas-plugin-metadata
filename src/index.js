@@ -8,7 +8,6 @@ const { Angles } = constants;
 const DEFAULTS = {
   _headingDrawn: false,
   _maxLabelWidth: {},
-  _labelWidthTotal: 0,
   active: true,
   showHeaders: true,
   showLabels: true,
@@ -54,9 +53,10 @@ function hasMetadataHeadings(tree) {
 }
 
 function getMetadataLength(tree) {
-  const { blockLength, padding, _labelWidthTotal } = tree.metadata;
-  return _labelWidthTotal +
-         getMetadataColumnNames(tree).length * (blockLength + padding);
+  const { showLabels, blockLength, padding, _maxLabelWidth } = tree.metadata;
+  const cols = getMetadataColumnNames(tree);
+  return (showLabels ? cols.reduce((pre, cur) => _maxLabelWidth[cur], 0) : 0) +
+         cols.length * (blockLength + padding);
 }
 
 function getMetadataMaxBlockSize(tree) {
@@ -240,11 +240,6 @@ function setMaxLabelWidths(tree) {
   }
 
   tree.metadata._maxLabelWidth = maxLabelWidth;
-
-  tree.metadata._labelWidthTotal = 0;
-  for (const columnName of columnNames) {
-    tree.metadata._labelWidthTotal += maxLabelWidth[columnName];
-  }
 }
 
 export default function metadataPlugin(decorate) {
