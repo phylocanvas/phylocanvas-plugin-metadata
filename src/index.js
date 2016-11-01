@@ -191,7 +191,6 @@ function drawMetadata(branch) {
       }
       i++;
     }
-    ctx.stroke();
     ctx.closePath();
   }
 }
