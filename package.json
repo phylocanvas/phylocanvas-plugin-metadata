@@ -1,6 +1,6 @@
 {
   "name": "phylocanvas-plugin-metadata",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Display binary data adjacent to tree leaves.",
   "main": "dist/index.min.js",
   "scripts": {
