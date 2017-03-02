@@ -173,7 +173,7 @@ function drawMetadata(branch) {
         0;
     const font = getFontString(tree);
     for (const columnName of columnNames) {
-      if (typeof data[columnName] !== 'undefined') {
+      if (typeof data[columnName] !== 'undefined' && branch.leafStyle.fillStyle !== 'transparent') {
         ctx.fillStyle = data[columnName].colour || data[columnName];
         ctx.fillRect(tx, ty, blockLength, size + i * stepCorrection);
         if (showLabels && typeof data[columnName].label === 'string') {
