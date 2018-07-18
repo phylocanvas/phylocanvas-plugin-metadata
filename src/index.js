@@ -8,6 +8,7 @@ const { Angles } = constants;
 const DEFAULTS = {
   _headingDrawn: false,
   _maxLabelWidth: {},
+  _blockCoords: {}, // object to store metadata block coordinates
   active: true,
   showHeaders: true,
   showLabels: true,
@@ -22,6 +23,8 @@ const DEFAULTS = {
   strokeStyle: 'black',
   lineWidth: 1,
   font: null,
+  showTooltip: true, // whether or not to show metadata tooltip
+  tooltipFunc: null, // optional function for innerHTML to set for tooltip
 };
 
 function isCircularTree(tree) {
@@ -106,16 +109,17 @@ function drawMetadataHeading(branch, startX, startY) {
     startY + _maxHeaderHeight / 2 + Math.sin(angle) * _maxHeaderWidth / 2;
   const sign = treeType === 'hierarchical' ? -1 : 1;
   let x = startX;
+  const cosAngle = Math.cos(angle);
+  const sinAngle = Math.sin(angle);
+  // start of header text should appear directly over metadata blocks
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'bottom';
   for (const columnName of metadata) {
-    const headerLength =
-      blockLength + (showLabels ? _maxLabelWidth[columnName] : 0);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const labelX = x + headerLength / 2;
+    const headerLength = blockLength + (showLabels ? _maxLabelWidth[columnName] : 0);
+    const textX = cosAngle * x + sinAngle * sign * (startY + _maxHeaderHeight)
+    const textY = sinAngle * (x + _maxHeaderHeight) + cosAngle * -sign * startY
     ctx.rotate(-angle);
-    ctx.fillText(columnName,
-      Math.cos(angle) * labelX + Math.sin(angle) * sign * y,
-      Math.sin(angle) * labelX + Math.cos(angle) * -sign * y);
+    ctx.fillText(columnName, textX, textY);
     ctx.rotate(angle);
     if (underlineHeaders) {
       ctx.beginPath();
@@ -137,6 +141,9 @@ function drawMetadata(branch) {
   // set initial x and y coordinates
   let tx = branch.getLabelStartX();
   let ty = 0;
+
+  // initialize metadata block coordinates for current branch
+  tree.metadata._blockCoords[branch.id] = []
 
   if (tree.showLabels || (tree.hoverLabel && branch.highlighted)) {
     tx += tree.maxLabelLength[tree.treeType];
@@ -176,6 +183,16 @@ function drawMetadata(branch) {
       if (typeof data[columnName] !== 'undefined' && branch.leafStyle.fillStyle !== 'transparent') {
         ctx.fillStyle = data[columnName].colour || data[columnName];
         ctx.fillRect(tx, ty, blockLength, size + i * stepCorrection);
+        // add metadata block coordinate information for each column
+        tree.metadata._blockCoords[branch.id].push({
+          x: tx + branch.centerx,
+          y: ty + branch.centery,
+          w: blockLength,
+          h: size + i * stepCorrection,
+          columnName: columnName,
+          data: data[columnName],
+          leaf: branch.id
+        });
         if (showLabels && typeof data[columnName].label === 'string') {
           ctx.font = font;
           ctx.fillStyle = fillStyle;
@@ -204,7 +221,8 @@ function setMaxLabelWidths(tree) {
   ctx.font = getFontString(tree);
 
   tree.metadata._maxHeaderWidth = 0;
-  tree.metadata._maxHeaderHeight = ctx.measureText('M').width;
+  // Using W since it is the widest character given the default font style context
+  tree.metadata._maxHeaderHeight = ctx.measureText('W').width;
   const maxLabelWidth = {};
   if (showLabels) {
     for (const col of columnNames) {
@@ -233,6 +251,84 @@ function setMaxLabelWidths(tree) {
   }
 
   tree.metadata._maxLabelWidth = maxLabelWidth;
+}
+
+/**
+ * Try to find a metadata block at a position. 
+ * 
+ * @param  {Object.<string, Object[]>} blocks Map with metadata block coordinate information for each leaf branch.
+ * @param  {number} x x-axis coordinate position
+ * @param  {number} y y-axis coordinate position
+ * @return {?Object} Metadata block at x,y coordinates if any otherwise null
+ */
+function findMetadataBlock(blocks, x, y) {
+  for (let branchId in blocks) {
+    const row = blocks[branchId]
+    for (let cell of row) {
+      if (x >= cell.x && x <= (cell.x + cell.w) && y >= cell.y && y <= (cell.y + cell.h)) {
+        return cell;
+      }
+    }
+  }
+  return null;
+}
+
+
+function getBackingStorePixelRatio(context) {
+  return context.backingStorePixelRatio || context.webkitBackingStorePixelRatio || context.mozBackingStorePixelRatio || context.msBackingStorePixelRatio || context.oBackingStorePixelRatio || 1;
+}
+
+function getPixelRatio(canvas) {
+  return (window.devicePixelRatio || 1) / getBackingStorePixelRatio(canvas);
+}
+
+/**
+ * Translate a mouse event to the internal coordinates of a PhyloCanvas Tree object.
+ *
+ * Adapted from `translateClick()` in phylocanvas/src/utils/canvas.js
+ * 
+ * @param  {MouseEvent} event Mouse event object
+ * @param  {PhyloCanvas.Tree} PhyloCanvas Tree object
+ * @return {number[]} Adjusted x,y coordinate positions
+ */
+function translateMouseEvent(event, tree) {
+  const pixelRatio = getPixelRatio(tree.canvas);
+  return [
+    (event.offsetX - tree.offsetx) / tree.zoom * pixelRatio,
+    (event.offsetY - tree.offsety) / tree.zoom * pixelRatio,
+  ];
+}
+
+/**
+ * Get the default tooltip inner HTML for a metadata block.
+ * 
+ * @param  {Object} block Metadata block/cell object
+ * @return {string} Inner HTML for the PhyloCanvas tooltip
+ */
+function defaultTooltipInnerHTML(block) {
+  const { columnName, data, leaf } = block;
+  const { colour, label } = data;
+  return `
+    <table style="border: 2px solid ${colour}">
+      <tbody>
+        <tr>
+          <td><b>Sample</b></td>
+          <td>${leaf}</td>
+        </tr>
+        <tr>
+          <td><b>${columnName}</b></td>
+          <td>${label}</td>
+        </tr>
+      </tbody>
+    </table>`;
+}
+
+function displayMetadataTooltip(tooltip, block, event, func) {
+  tooltip.element.innerHTML = func ? func(block) : defaultTooltipInnerHTML(block);
+  tooltip.element.style.top = `${event.clientY}px`;
+  tooltip.element.style.left = `${event.clientX}px`;
+  tooltip.element.style.display = 'block';
+  tooltip.closed = false;
 }
 
 export default function metadataPlugin(decorate) {
@@ -300,5 +396,18 @@ export default function metadataPlugin(decorate) {
       totalSize += getMetadataLength(this.tree);
     }
     return totalSize;
+  });
+
+  decorate(Tree, 'drag', function (delegate, args) {
+    if (!this.pickedup && this.metadata.showTooltip) {
+      const [ event ] = args;
+      const [x, y] = translateMouseEvent(event, this);
+      const block = findMetadataBlock(this.metadata._blockCoords, x, y);
+      if (block) {
+        displayMetadataTooltip(this.tooltip, block, event, this.metadata.tooltipFunc);
+        return;
+      }
+    }
+    delegate.apply(this, args);
   });
 }
