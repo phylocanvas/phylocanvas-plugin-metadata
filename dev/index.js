@@ -20,7 +20,7 @@ function getRandomLabel(length = 1 + Math.random() * 16) {
   return text;
 }
 
-const numberOfColumns = 4;
+const numberOfColumns = 10;
 
 const tree = PhyloCanvas.createTree('phylocanvas', {
   padding: 0,
@@ -28,14 +28,37 @@ const tree = PhyloCanvas.createTree('phylocanvas', {
     // show: true,
     // blockLength: 32,
     // blockSize: 32,
-    // padding: 16,
+    padding: 5,
     // // showHeaders: false,
     // // showLabels: false,
     // underlineHeaders: 'true',
-    // headerAngle: 0,
+    headerAngle: 0,
     // // font: '16px Sans-serif',
+    // tooltipFunc: (block) => {
+    //   const { columnName, data, leaf } = block;
+    //   return `
+    //   <table>
+    //     <thead>
+    //       <tr>
+    //         <th>Key</th>
+    //         <th>Val</th>
+    //       </tr>
+    //     </thead>
+    //     <tbody>
+    //       <tr>
+    //         <td><b>Sample</b></td>
+    //         <td>${leaf}</td>
+    //       </tr>
+    //       <tr>
+    //         <td><b>${columnName}</b></td>
+    //         <td>${data.label}</td>
+    //       </tr>
+    //     </tbody>
+    //   </table>
+    //   `;
+    // },
   },
-  baseNodeSize: 50,
+  baseNodeSize: 0,
 });
 
 // create buttons
@@ -50,14 +73,40 @@ for (const treeType of Object.keys(phyloComponents.treeTypes)) {
 const scaleRange = document.createElement('input');
 scaleRange.type = 'range';
 scaleRange.min = 1;
-scaleRange.max = 100;
+scaleRange.max = 200;
+scaleRange.value = 32;
 scaleRange.step = 1;
 scaleRange.addEventListener('change', () => {
   const value = Number(scaleRange.value);
   tree.metadata.blockLength = value;
-  tree.setNodeSize(value);
+  // tree.setNodeSize(value);
+  tree.draw();
 });
 buttonForm.appendChild(scaleRange);
+
+
+const headerAngleRotation = document.createElement('input');
+headerAngleRotation.type = 'range';
+headerAngleRotation.min = 0;
+headerAngleRotation.max = 90;
+headerAngleRotation.step = 1;
+headerAngleRotation.value = 0;
+headerAngleRotation.addEventListener('change', () => {
+  const value = Number(headerAngleRotation.value);
+  tree.metadata.headerAngle = value;
+  tree.draw();
+});
+buttonForm.appendChild(headerAngleRotation);
+
+
+const chkShowLabels = document.createElement('input');
+chkShowLabels.type = 'checkbox';
+chkShowLabels.checked = true;
+chkShowLabels.addEventListener('change', () => {
+  tree.metadata.showLabels = !tree.metadata.showLabels;
+  tree.draw();
+})
+buttonForm.appendChild(chkShowLabels)
 
 tree.on('error', event => { throw event.error; });
 
